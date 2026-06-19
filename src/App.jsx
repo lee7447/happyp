@@ -120,7 +120,27 @@ const copyNumbers = (nums) => {
   navigator.clipboard.writeText(text);
   alert("조합이 복사되었습니다.");
 };
+const getAIScore = (nums) => {
+  let score = 0;
 
+  const odd = nums.filter((n) => n % 2 === 1).length;
+
+  if (odd >= 2 && odd <= 4) {
+    score += 20;
+  }
+
+  const sections = [
+    nums.filter((n) => n <= 10).length,
+    nums.filter((n) => n > 10 && n <= 20).length,
+    nums.filter((n) => n > 20 && n <= 30).length,
+    nums.filter((n) => n > 30 && n <= 40).length,
+    nums.filter((n) => n > 40).length,
+  ];
+
+  score += sections.filter((v) => v > 0).length * 5;
+
+  return score;
+};
 const saveNumbers = (nums, idx) => {
    const exists = saved.some(
     (item) => item.nums.join(",") === nums.join(",")
