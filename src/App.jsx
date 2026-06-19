@@ -233,7 +233,7 @@ const topNumbers = Object.entries(frequency)
   .slice(0, 10);
   return (
     <div style={{ padding: 20, textAlign: "center" }}>
-      <h1>🎰 유재님 AI 로또 분석기 20.0</h1>
+      <h1>🎰 유재님 AI 로또 분석기 25.0</h1>
       <button
   onClick={exportCSV}
   style={{
