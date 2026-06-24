@@ -118,17 +118,25 @@ else if (maxSection === 3) finalScore -= 5;
         nums,
           score: finalScore,
          matchCount,
+         sectionCounts,
       });
     }
 allSets.sort((a, b) => b.score - a.score);
     setResults(allSets.slice(0, 10));
     const bestSet = allSets[0];
+const highestScore = Math.max(
+  ...history.map((h) => h.score),
+  0
+);
 
+const isNewRecord =
+  bestSet.score > highestScore;
 setHistory((prev) => [
   {
     date: new Date().toLocaleString(),
     nums: bestSet.nums,
     score: bestSet.score,
+    isNewRecord,
   },
   ...prev,
 ].slice(0, 20));
@@ -271,7 +279,23 @@ const topNumbers = Object.entries(frequency)
   .slice(0, 10);
   return (
     <div style={{ padding: 20, textAlign: "center" }}>
-      <h1>🎰 유재님 AI 로또 분석기 25.0</h1>
+      <h1
+  style={{
+    color: "#2e8b57",
+    textAlign: "center",
+  }}
+>
+  🍀 행복이 AI 로또 연구소
+</h1>
+
+<p
+  style={{
+    textAlign: "center",
+    color: "#777",
+  }}
+>
+  AI 기반 로또 번호 분석 시스템
+</p>
       <button
   onClick={exportCSV}
   style={{
@@ -363,7 +387,8 @@ const topNumbers = Object.entries(frequency)
 <p>
   ⭐ AI 최종점수 : {set.score.toFixed(1)}
   <br />
-
+</p>
+<p>
 🏆 AI 등급 :
 {set.score >= 120
   ? " 👑 SS"
@@ -375,17 +400,58 @@ const topNumbers = Object.entries(frequency)
   ? " 🥉 B"
   : " C"}
 </p>
+
+
+<p>
+📈 AI 신뢰도 :
+<span
+  style={{
+    color:
+      set.score >= 120
+        ? "green"
+        : set.score >= 100
+        ? "blue"
+        : "orange",
+    fontWeight: "bold",
+  }}
+>
+  {Math.min(99, Math.round(set.score * 0.8))}%
+</span>
+</p>
+
+<p>🧠 AI 분석 결과</p>
+
+{set.matchCount === 0 && (
+  <p>✔ 최근 당첨번호 회피 우수</p>
+)}
+
+{new Set(set.nums.map(n => n % 10)).size >= 5 && (
+  <p>✔ 끝자리 다양성 우수</p>
+)}
+
+{Math.max(...set.sectionCounts) <= 2 && (
+  <p>✔ 번호 분포 균형 우수</p>
+)}
+
+{set.score >= 120 && (
+  <p>✔ AI 최고등급 조합</p>
+)}
+
+{set.isNewRecord && (
+  <p>🔥 역대 최고 점수 갱신!</p>
+)}
 <p>
   🔢 끝자리 다양성 : {new Set(set.nums.map(n => n % 10)).size}/6
 </p>
 <p>
-  📊 구간분포 :
-  {set.nums.filter(n => n <= 10).length} /
-  {set.nums.filter(n => n > 10 && n <= 20).length} /
-  {set.nums.filter(n => n > 20 && n <= 30).length} /
-  {set.nums.filter(n => n > 30 && n <= 40).length} /
-  {set.nums.filter(n => n > 40).length}
+  📊 번호분포 :
+  {set.sectionCounts[0]} /
+  {set.sectionCounts[1]} /
+  {set.sectionCounts[2]} /
+  {set.sectionCounts[3]} /
+  {set.sectionCounts[4]}
 </p>
+
 {Math.max(
   set.nums.filter(n => n <= 10).length,
   set.nums.filter(n => n > 10 && n <= 20).length,
@@ -530,8 +596,12 @@ const topNumbers = Object.entries(frequency)
   <div
   key={idx}
   style={{
-    border: idx === 0 ? "3px solid gold" : "1px solid #ccc",
-    backgroundColor: idx === 0 ? "#fff8dc" : "white",
+    border: idx === 0 ? "4px solid gold" : "1px solid #ccc",
+    backgroundColor: idx === 0 ? "#fff7dc" : "white",
+    boxShadow:
+  idx === 0
+    ? "0 0 15px rgba(255,215,0,0.5)"
+    : "none",
     padding: "10px",
     marginBottom: "10px",
     borderRadius: "10px",
