@@ -87,7 +87,25 @@ nums.forEach((n) => {
   else sectionCounts[4]++;
 });
 let finalScore = score;
+if (matchCount === 0) {
+  finalScore += 10;
+} else if (matchCount === 1) {
+  finalScore += 5;
+}
+const hotNumbers = [7, 12, 17, 21, 27, 33, 40, 42];
 
+const hotCount = nums.filter((n) =>
+  hotNumbers.includes(n)
+).length;
+
+finalScore += hotCount * 2;
+const coldNumbers = [3, 11, 18, 24, 31, 37, 44];
+
+const coldCount = nums.filter((n) =>
+  coldNumbers.includes(n)
+).length;
+
+finalScore += coldCount * 1.5;
 if (matchCount >= 3) finalScore -= 20;
 else if (matchCount === 2) finalScore -= 10;
 else if (matchCount === 0) finalScore += 5;
@@ -344,6 +362,18 @@ const topNumbers = Object.entries(frequency)
 </p>
 <p>
   ⭐ AI 최종점수 : {set.score.toFixed(1)}
+  <br />
+
+🏆 AI 등급 :
+{set.score >= 120
+  ? " 👑 SS"
+  : set.score >= 100
+  ? " 🏆 S"
+  : set.score >= 90
+  ? " 🥈 A"
+  : set.score >= 80
+  ? " 🥉 B"
+  : " C"}
 </p>
 <p>
   🔢 끝자리 다양성 : {new Set(set.nums.map(n => n % 10)).size}/6
@@ -463,6 +493,14 @@ const topNumbers = Object.entries(frequency)
     </div>
     <div>
       점수 : {item.score}
+      <div>
+  등급 :
+  {item.score >= 100
+    ? " 🏆 S"
+    : item.score >= 90
+    ? " 🥈 A"
+    : " 🥉 B"}
+</div>
     </div>
   </div>
 ))}
@@ -501,6 +539,9 @@ const topNumbers = Object.entries(frequency)
 >
     {item.idx + 1}조합 저장 :
     {item.nums.join(", ")}
+    <br />
+
+⭐ AI 점수 : {getAIScore(item.nums)}점
      <button
       onClick={() => deleteSaved(idx)}
       style={{ marginLeft: 10 }}
