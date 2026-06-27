@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-
+import { winningHistory } from "./winningHistory";
 export default function App() {
   const [fixed, setFixed] = useState(() => {
   return localStorage.getItem("fixedNums") || "";
@@ -100,7 +100,13 @@ const hotCount = nums.filter((n) =>
 
 finalScore += hotCount * 2;
 const coldNumbers = [3, 11, 18, 24, 31, 37, 44];
+const balancedCount = nums.filter(
+  (n) => hotNumbers.includes(n) || coldNumbers.includes(n)
+).length;
 
+if (balancedCount >= 3) {
+  finalScore += 5;
+}
 const coldCount = nums.filter((n) =>
   coldNumbers.includes(n)
 ).length;
@@ -121,6 +127,17 @@ else if (maxSection === 3) finalScore -= 5;
          sectionCounts,
       });
     }
+    for (let i = 0; i < allSets.length; i++) {
+  for (let j = i + 1; j < allSets.length; j++) {
+    const sameCount = allSets[i].nums.filter((n) =>
+      allSets[j].nums.includes(n)
+    ).length;
+
+    if (sameCount >= 4) {
+      allSets[j].score -= 5;
+    }
+  }
+}
 allSets.sort((a, b) => b.score - a.score);
     setResults(allSets.slice(0, 10));
     const bestSet = allSets[0];
@@ -356,6 +373,15 @@ const topNumbers = Object.entries(frequency)
   value={winning}
   onChange={(e) => setWinning(e.target.value)}
 />
+<p
+  style={{
+    color: "#666",
+    fontSize: "14px",
+    marginTop: "5px",
+  }}
+>
+💡 최신 당첨번호 6개를 입력하면 AI가 해당 번호를 회피하여 분석합니다.
+</p>
       <br /><br />
 
       <button
