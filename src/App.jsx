@@ -22,6 +22,29 @@ const [winning, setWinning] = useState(() => {
   return localStorage.getItem("winningNums") || "";
 });
   const generate = () => {
+    const recentHistory = winningHistory.slice(0, 30);
+    const recentFrequency = {};
+
+recentHistory.forEach((draw) => {
+  draw.forEach((num) => {
+    recentFrequency[num] =
+      (recentFrequency[num] || 0) + 1;
+  });
+});
+const recentOddAverage =
+  recentHistory.reduce(
+    (sum, draw) =>
+      sum +
+      draw.filter((n) => n % 2 === 1).length,
+    0
+  ) / recentHistory.length;
+
+const recentSumAverage =
+  recentHistory.reduce(
+    (sum, draw) =>
+      sum + draw.reduce((a, b) => a + b, 0),
+    0
+  ) / recentHistory.length;
     const fixedNums = fixed
       .split(",")
       .map((n) => parseInt(n))
@@ -55,8 +78,14 @@ const [winning, setWinning] = useState(() => {
       nums.sort((a, b) => a - b);
 
       const odd = nums.filter((n) => n % 2).length;
+      if (Math.abs(odd - recentOddAverage) <= 1) {
+  finalScore += 4;
+}
       const high = nums.filter((n) => n > 22).length;
 const sum = nums.reduce((a, b) => a + b, 0);
+if (Math.abs(sum - recentSumAverage) <= 15) {
+  finalScore += 5;
+}
 let consecutivePenalty = 0;
 
 for (let i = 0; i < nums.length - 1; i++) {
@@ -99,6 +128,16 @@ const hotCount = nums.filter((n) =>
 ).length;
 
 finalScore += hotCount * 2;
+const recentHotBonus = nums.reduce((bonus, num) => {
+  return bonus + (recentFrequency[num] || 0) * 0.5;
+}, 0);
+
+finalScore += recentHotBonus;
+const overHotCount = nums.filter(
+  (num) => (recentFrequency[num] || 0) >= 6
+).length;
+
+finalScore -= overHotCount * 1.5;
 const coldNumbers = [3, 11, 18, 24, 31, 37, 44];
 const balancedCount = nums.filter(
   (n) => hotNumbers.includes(n) || coldNumbers.includes(n)
