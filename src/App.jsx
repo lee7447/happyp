@@ -100,15 +100,7 @@ for (let i = 0; i < nums.length - 1; i++) {
   Math.abs(high - 3) * 10 -
   - Math.abs(sum - 135) * 0.3 -
   consecutivePenalty;
-  let learningBonus = 0;
-
-nums.forEach((num) => {
-  if (aiLearning[num]) {
-    learningBonus += aiLearning[num] * 0.3;
-  }
-});
-
-const finalScore = score + learningBonus;
+  
 const matchCount = nums.filter((n) =>
   winningNums.includes(n)
 ).length;
@@ -125,6 +117,17 @@ nums.forEach((n) => {
   else sectionCounts[4]++;
 });
 let finalScore = score;
+
+let learningBonus = 0;
+
+nums.forEach((num) => {
+  if (aiLearning[num]) {
+    learningBonus += aiLearning[num] * 0.3;
+  }
+});
+
+finalScore += learningBonus;
+
 if (matchCount === 0) {
   finalScore += 10;
 } else if (matchCount === 1) {
