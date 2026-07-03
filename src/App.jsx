@@ -14,6 +14,10 @@ const [saved, setSaved] = useState(() => {
   const stored = localStorage.getItem("savedLotto");
   return stored ? JSON.parse(stored) : [];
 });
+const [aiLearning, setAiLearning] = useState(() => {
+  const data = localStorage.getItem("aiLearning");
+  return data ? JSON.parse(data) : {};
+});
 const [searchNum, setSearchNum] = useState("");
 const [history, setHistory] = useState(() => {
   const stored = localStorage.getItem("lottoHistory");
@@ -96,7 +100,15 @@ for (let i = 0; i < nums.length - 1; i++) {
   Math.abs(high - 3) * 10 -
   - Math.abs(sum - 135) * 0.3 -
   consecutivePenalty;
-  
+  let learningBonus = 0;
+
+nums.forEach((num) => {
+  if (aiLearning[num]) {
+    learningBonus += aiLearning[num] * 0.3;
+  }
+});
+
+const finalScore = score + learningBonus;
 const matchCount = nums.filter((n) =>
   winningNums.includes(n)
 ).length;
@@ -234,8 +246,19 @@ const saveNumbers = (nums, idx) => {
     {
       nums,
       idx,
+       score: idx,
+       date: new Date().toLocaleString(),
     },
   ]);
+  setAiLearning((prev) => {
+  const updated = { ...prev };
+
+  nums.forEach((num) => {
+    updated[num] = (updated[num] || 0) + 1;
+  });
+
+  return updated;
+});
   supabase
   .from("saved_numbers")
   .insert([
@@ -292,6 +315,18 @@ useEffect(() => {
     JSON.stringify(saved)
   );
 }, [saved]);
+useEffect(() => {
+  localStorage.setItem(
+    "aiLearning",
+    JSON.stringify(aiLearning)
+  );
+}, [aiLearning]);
+useEffect(() => {
+  localStorage.setItem(
+    "aiLearning",
+    JSON.stringify(aiLearning)
+  );
+}, [aiLearning]);
 useEffect(() => {
   localStorage.setItem(
     "winningNums",
