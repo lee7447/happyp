@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { winningHistory } from "./winningHistory";
+import { supabase } from "./supabase";
 export default function App() {
   const [fixed, setFixed] = useState(() => {
   return localStorage.getItem("fixedNums") || "";
@@ -78,14 +79,10 @@ const recentSumAverage =
       nums.sort((a, b) => a - b);
 
       const odd = nums.filter((n) => n % 2).length;
-      if (Math.abs(odd - recentOddAverage) <= 1) {
-  finalScore += 4;
-}
+      
       const high = nums.filter((n) => n > 22).length;
 const sum = nums.reduce((a, b) => a + b, 0);
-if (Math.abs(sum - recentSumAverage) <= 15) {
-  finalScore += 5;
-}
+
 let consecutivePenalty = 0;
 
 for (let i = 0; i < nums.length - 1; i++) {
@@ -239,14 +236,30 @@ const saveNumbers = (nums, idx) => {
       idx,
     },
   ]);
+  supabase
+  .from("saved_numbers")
+  .insert([
+    {
+      nums: nums.join(","),
+      score: idx,
+    },
+  ])
+  .then(({ error }) => {
+    if (error) {
+      console.error("Supabase 저장 실패:", error);
+    } else {
+      console.log("Supabase 저장 성공");
+    }
+  });
 };
+
 const deleteSaved = (deleteIdx) => {
   setSaved((prev) =>
     prev.filter((_, idx) => idx !== deleteIdx)
   );
 };
 const exportCSV = () => {
-  const rows = history.map((item) => [
+  const rows = saved.map((item) => [
     item.date,
     item.nums.join("-"),
     item.score,
