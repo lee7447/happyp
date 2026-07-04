@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { winningHistory } from "./winningHistory";
 import { supabase } from "./supabase";
+import { hotNumbers, coldNumbers, getHotCount, getColdCount } from "./aiEngine";
+import { getSectionCounts } from "./statistics";
+import {
+  getLearningBonus,
+  getPairLearningBonus,
+  updatePairLearning,
+} from "./learning";
 export default function App() {
   const [fixed, setFixed] = useState(() => {
   return localStorage.getItem("fixedNums") || "";
@@ -16,6 +23,10 @@ const [saved, setSaved] = useState(() => {
 });
 const [aiLearning, setAiLearning] = useState(() => {
   const data = localStorage.getItem("aiLearning");
+  return data ? JSON.parse(data) : {};
+});
+const [pairLearning, setPairLearning] = useState(() => {
+  const data = localStorage.getItem("pairLearning");
   return data ? JSON.parse(data) : {};
 });
 const [searchNum, setSearchNum] = useState("");
@@ -107,37 +118,21 @@ const matchCount = nums.filter((n) =>
 const lastDigits = nums.map((n) => n % 10);
 const uniqueLastDigits = new Set(lastDigits).size;
 const lastDigitPenalty = (6 - uniqueLastDigits) * 3;
-const sectionCounts = [0, 0, 0, 0, 0];
-
-nums.forEach((n) => {
-  if (n <= 10) sectionCounts[0]++;
-  else if (n <= 20) sectionCounts[1]++;
-  else if (n <= 30) sectionCounts[2]++;
-  else if (n <= 40) sectionCounts[3]++;
-  else sectionCounts[4]++;
-});
+const sectionCounts = getSectionCounts(nums);
 let finalScore = score;
 
-let learningBonus = 0;
-
-nums.forEach((num) => {
-  if (aiLearning[num]) {
-    learningBonus += aiLearning[num] * 0.3;
-  }
-});
-
+const learningBonus = getLearningBonus(nums, aiLearning);
 finalScore += learningBonus;
-
+const pairBonus = getPairLearningBonus(nums, pairLearning);
+finalScore += pairBonus;
 if (matchCount === 0) {
   finalScore += 10;
 } else if (matchCount === 1) {
   finalScore += 5;
 }
-const hotNumbers = [7, 12, 17, 21, 27, 33, 40, 42];
 
-const hotCount = nums.filter((n) =>
-  hotNumbers.includes(n)
-).length;
+
+const hotCount = getHotCount(nums);
 
 finalScore += hotCount * 2;
 const recentHotBonus = nums.reduce((bonus, num) => {
@@ -150,7 +145,7 @@ const overHotCount = nums.filter(
 ).length;
 
 finalScore -= overHotCount * 1.5;
-const coldNumbers = [3, 11, 18, 24, 31, 37, 44];
+
 const balancedCount = nums.filter(
   (n) => hotNumbers.includes(n) || coldNumbers.includes(n)
 ).length;
@@ -158,9 +153,7 @@ const balancedCount = nums.filter(
 if (balancedCount >= 3) {
   finalScore += 5;
 }
-const coldCount = nums.filter((n) =>
-  coldNumbers.includes(n)
-).length;
+const coldCount = getColdCount(nums);
 
 finalScore += coldCount * 1.5;
 if (matchCount >= 3) finalScore -= 20;
@@ -199,6 +192,9 @@ const highestScore = Math.max(
 
 const isNewRecord =
   bestSet.score > highestScore;
+  setPairLearning((prev) =>
+  updatePairLearning(bestSet.nums, prev)
+);
 setHistory((prev) => [
   {
     date: new Date().toLocaleString(),
@@ -330,6 +326,12 @@ useEffect(() => {
     JSON.stringify(aiLearning)
   );
 }, [aiLearning]);
+useEffect(() => {
+  localStorage.setItem(
+    "pairLearning",
+    JSON.stringify(pairLearning)
+  );
+}, [pairLearning]);
 useEffect(() => {
   localStorage.setItem(
     "winningNums",
