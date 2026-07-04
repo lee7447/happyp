@@ -77,7 +77,7 @@ const recentSumAverage =
   .filter((n) => !isNaN(n));
     const allSets = [];
 
-    for (let k = 0; k < 1000; k++) {
+    for (let k = 0; k < 10000; k++) {
       const nums = [...fixedNums];
 
       while (nums.length < 6) {
