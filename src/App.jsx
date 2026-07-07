@@ -37,6 +37,7 @@ const [history, setHistory] = useState(() => {
 const [winning, setWinning] = useState(() => {
   return localStorage.getItem("winningNums") || "";
 });
+const GENERATE_COUNT = 30000;
   const generate = () => {
     const recentHistory = winningHistory.slice(0, 30);
     const recentFrequency = {};
@@ -75,13 +76,48 @@ const recentSumAverage =
   .split(",")
   .map((n) => parseInt(n))
   .filter((n) => !isNaN(n));
+  const seenSets = new Set();
     const allSets = [];
 
-    for (let k = 0; k < 10000; k++) {
+    
+
+for (let k = 0; k < GENERATE_COUNT; k++) {
       const nums = [...fixedNums];
 
       while (nums.length < 6) {
-        const n = Math.floor(Math.random() * 45) + 1;
+        let n;
+
+if (Math.random() < 0.7) {
+  const weights = [];
+
+let totalWeight = 0;
+
+for (let i = 1; i <= 45; i++) {
+  if (nums.includes(i) || excludeNums.includes(i)) continue;
+
+  let pairBonus = 0;
+
+  nums.forEach((x) => {
+    const key = [x, i].sort((a, b) => a - b).join("-");
+    pairBonus += pairLearning[key] || 0;
+  });
+
+  const weight =
+    1 +
+    (aiLearning[i] || 0) +
+    (recentFrequency[i] || 0) +
+    pairBonus * 0.3;
+
+  totalWeight += weight;
+  weights.push({ num: i, total: totalWeight });
+}
+
+const rand = Math.random() * totalWeight;
+
+n = weights.find((w) => rand <= w.total).num;
+} else {
+  n = Math.floor(Math.random() * 45) + 1;
+}
 
         if (
           !nums.includes(n) &&
@@ -119,6 +155,7 @@ const lastDigits = nums.map((n) => n % 10);
 const uniqueLastDigits = new Set(lastDigits).size;
 const lastDigitPenalty = (6 - uniqueLastDigits) * 3;
 const sectionCounts = getSectionCounts(nums);
+const maxSection = Math.max(...sectionCounts);
 let finalScore = score;
 
 const learningBonus = getLearningBonus(nums, aiLearning);
@@ -160,10 +197,26 @@ if (matchCount >= 3) finalScore -= 20;
 else if (matchCount === 2) finalScore -= 10;
 else if (matchCount === 0) finalScore += 5;
 finalScore -= lastDigitPenalty;
-const maxSection = Math.max(...sectionCounts);
+
 
 if (maxSection >= 4) finalScore -= 15;
 else if (maxSection === 3) finalScore -= 5;
+// AI 필터
+if (consecutivePenalty >= 15) continue;
+
+if (sum < 90 || sum > 190) continue;
+
+if (maxSection >= 4) continue;
+
+if (uniqueLastDigits <= 2) continue;
+
+if (matchCount >= 4) continue;
+if (finalScore < 75) continue;
+const key = nums.join("-");
+
+if (seenSets.has(key)) continue;
+
+seenSets.add(key);
       allSets.push({
         nums,
           score: finalScore,
@@ -171,20 +224,21 @@ else if (maxSection === 3) finalScore -= 5;
          sectionCounts,
       });
     }
-    for (let i = 0; i < allSets.length; i++) {
-  for (let j = i + 1; j < allSets.length; j++) {
-    const sameCount = allSets[i].nums.filter((n) =>
-      allSets[j].nums.includes(n)
-    ).length;
+    
+const top10 = [];
 
-    if (sameCount >= 4) {
-      allSets[j].score -= 5;
-    }
+for (const set of allSets) {
+  if (top10.length < 10) {
+    top10.push(set);
+    top10.sort((a, b) => b.score - a.score);
+  } else if (set.score > top10[9].score) {
+    top10[9] = set;
+    top10.sort((a, b) => b.score - a.score);
   }
 }
-allSets.sort((a, b) => b.score - a.score);
-    setResults(allSets.slice(0, 10));
-    const bestSet = allSets[0];
+
+setResults(top10);
+    const bestSet = top10[0];
 const highestScore = Math.max(
   ...history.map((h) => h.score),
   0
@@ -320,12 +374,7 @@ useEffect(() => {
     JSON.stringify(aiLearning)
   );
 }, [aiLearning]);
-useEffect(() => {
-  localStorage.setItem(
-    "aiLearning",
-    JSON.stringify(aiLearning)
-  );
-}, [aiLearning]);
+
 useEffect(() => {
   localStorage.setItem(
     "pairLearning",
@@ -483,7 +532,7 @@ const topNumbers = Object.entries(frequency)
           fontSize: "18px"
         }}
       >
-        10조합 생성
+        🤖 AI {GENERATE_COUNT.toLocaleString()}조합 생성
       </button>
 
       {results.map((set, idx) => (
