@@ -47,3 +47,9 @@ export function generateTurbo({
 
   return nums.sort((a, b) => a - b);
 }
+export function testTurbo() {
+  return "Turbo Engine Ready";
+}
+export function turboVersion() {
+  return "Turbo Engine 3.0";
+}
