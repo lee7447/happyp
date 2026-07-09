@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { generateTurbo } from "./turboEngine";
 import { winningHistory } from "./winningHistory";
 import { supabase } from "./supabase";
 import { hotNumbers, coldNumbers, getHotCount, getColdCount } from "./aiEngine";
@@ -39,6 +40,7 @@ const [winning, setWinning] = useState(() => {
 });
 const GENERATE_COUNT = 30000;
   const generate = () => {
+    console.log(generateTurbo);
     const recentHistory = winningHistory.slice(0, 30);
     const recentFrequency = {};
 
