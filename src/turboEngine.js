@@ -37,19 +37,10 @@ export function generateTurbo({
 
     const rand = Math.random() * totalWeight;
 
-    const selected =
-      weights.find((w) => rand <= w.total)?.num;
+    const pick = weights.find((w) => rand <= w.total);
 
-    if (selected && !nums.includes(selected)) {
-      nums.push(selected);
-    }
+    if (pick) nums.push(pick.num);
   }
 
   return nums.sort((a, b) => a - b);
-}
-export function testTurbo() {
-  return "Turbo Engine Ready";
-}
-export function turboVersion() {
-  return "Turbo Engine 3.0";
 }
