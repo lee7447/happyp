@@ -93,7 +93,7 @@ const recentSumAverage =
 
     
 
-for (let k = 0; k < GENERATE_COUNT; k++) {
+ for (let k = 0; k < generateCount; k++){
       const nums = [...fixedNums];
 
       while (nums.length < 6) {
@@ -240,11 +240,11 @@ seenSets.add(key);
 const top10 = [];
 const TOP_COUNT = 10;
 for (const set of allSets) {
-  if (top10.length < 10) {
+  if (top10.length < TOP_COUNT) {
     top10.push(set);
     top10.sort((a, b) => b.score - a.score);
-  } else if (set.score > top10[9].score) {
-    top10[9] = set;
+  } else if (set.score > top10[TOP_COUNT - 1].score) {
+    top10[TOP_COUNT - 1] = set;
     top10.sort((a, b) => b.score - a.score);
   }
 }
