@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { generateTurbo } from "./turboEngine";
+import { getLatestWinningNumbers } from "./lottoApi";
 import { winningHistory } from "./winningHistory";
 import { supabase } from "./supabase";
 import { hotNumbers, coldNumbers, getHotCount, getColdCount } from "./aiEngine";
@@ -38,7 +39,16 @@ const [history, setHistory] = useState(() => {
 const [winning, setWinning] = useState(() => {
   return localStorage.getItem("winningNums") || "";
 });
-const GENERATE_COUNT = 30000;
+const [generateCount, setGenerateCount] = useState(30000);
+const loadLatestWinning = async () => {
+  const nums = await getLatestWinningNumbers(1180);
+
+  if (nums) {
+    setWinning(nums.join(","));
+  } else {
+    alert("당첨번호를 가져오지 못했습니다.");
+  }
+};
   const generate = () => {
     console.log(generateTurbo);
     const recentHistory = winningHistory.slice(0, 30);
@@ -228,7 +238,7 @@ seenSets.add(key);
     }
     
 const top10 = [];
-
+const TOP_COUNT = 10;
 for (const set of allSets) {
   if (top10.length < 10) {
     top10.push(set);
@@ -526,7 +536,20 @@ const topNumbers = Object.entries(frequency)
 💡 최신 당첨번호 6개를 입력하면 AI가 해당 번호를 회피하여 분석합니다.
 </p>
       <br /><br />
+<input
+  type="number"
+  value={generateCount}
+  onChange={(e) =>
+    setGenerateCount(Number(e.target.value))
+  }
+  style={{
+    width: 120,
+    padding: 5,
+    marginBottom: 10,
+  }}
+/>
 
+<br /><br />
       <button
         onClick={generate}
         style={{
@@ -534,7 +557,7 @@ const topNumbers = Object.entries(frequency)
           fontSize: "18px"
         }}
       >
-        🤖 AI {GENERATE_COUNT.toLocaleString()}조합 생성
+        🤖 AI {generateCount.toLocaleString()}조합 생성
       </button>
 
       {results.map((set, idx) => (
