@@ -8,38 +8,36 @@ export function generateTurbo({
   const nums = [...fixedNums];
 
   while (nums.length < 6) {
-    let totalWeight = 0;
-    const weights = [];
+    const candidates = [];
 
     for (let i = 1; i <= 45; i++) {
       if (nums.includes(i) || excludeNums.includes(i)) continue;
 
-      let pairBonus = 0;
+      let score = Math.random() * 100;
 
-      for (const x of nums) {
-        const key = [x, i].sort((a, b) => a - b).join("-");
-        pairBonus += pairLearning[key] || 0;
-      }
+      score += (Math.random() - 0.5) * 80;
 
-      const weight =
-        1 +
-        (aiLearning[i] || 0) +
-        (recentFrequency[i] || 0) +
-        pairBonus * 0.3;
+      score += (aiLearning[i] || 0) * 0.05;
+      score += (recentFrequency[i] || 0) * 0.03;
 
-      totalWeight += weight;
+      let pair = 0;
 
-      weights.push({
-        num: i,
-        total: totalWeight,
+      nums.forEach((n) => {
+        const key = [n, i].sort((a, b) => a - b).join("-");
+        pair += pairLearning[key] || 0;
       });
+
+      score += pair * 0.02;
+
+      candidates.push({ num: i, score });
     }
 
-    const rand = Math.random() * totalWeight;
+    candidates.sort((a, b) => b.score - a.score);
 
-    const pick = weights.find((w) => rand <= w.total);
+    const pick =
+      candidates[Math.floor(Math.random() * Math.min(8, candidates.length))];
 
-    if (pick) nums.push(pick.num);
+    nums.push(pick.num);
   }
 
   return nums.sort((a, b) => a - b);
