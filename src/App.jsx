@@ -90,12 +90,25 @@ const recentSumAverage =
   .filter((n) => !isNaN(n));
   const seenSets = new Set();
     const allSets = [];
-
+const elitePool = [];
     
 
  for (let k = 0; k < generateCount; k++){
       const nums = [...fixedNums];
+if (elitePool.length > 50 && Math.random() < 0.8) {
+  const parent =
+    elitePool[Math.floor(Math.random() * elitePool.length)];
 
+  parent.nums.forEach((n) => {
+    if (
+      nums.length < 6 &&
+      !nums.includes(n) &&
+      !excludeNums.includes(n)
+    ) {
+      nums.push(n);
+    }
+  });
+}
       while (nums.length < 6) {
         let n;
 
@@ -114,22 +127,42 @@ for (let i = 1; i <= 45; i++) {
     pairBonus += pairLearning[key] || 0;
   });
 
-  const weight =
-    1 +
-    (aiLearning[i] || 0) * 0.2 +
-    (recentFrequency[i] || 0) * 0.2 +
-    pairBonus * 0.05 +
-Math.random() * 0.8;
+  const lastDigit = i % 10;
 
-  totalWeight += weight;
-  weights.push({ num: i, total: totalWeight });
+const sameLastDigit = nums.filter(
+  (x) => x % 10 === lastDigit
+).length;
+
+const weight =
+  1 +
+  (aiLearning[i] || 0) * 0.25 +
+  (recentFrequency[i] || 0) * 0.25 +
+  pairBonus * 0.08 +
+  Math.random() * 3.5 -
+  sameLastDigit * 4;
+
+totalWeight += weight;
+weights.push({ num: i, total: totalWeight });
+  weights.sort(() => Math.random() - 0.5);
 }
 
 const rand = Math.random() * totalWeight;
 
 n = weights.find((w) => rand <= w.total).num;
-if (Math.random() < 0.4) {
-  n = Math.floor(Math.random() * 45) + 1;
+if (Math.random() < 0.7) {
+  let retry = 0;
+
+  do {
+    n = Math.floor(Math.random() * 45) + 1;
+    retry++;
+  } while (
+    retry < 20 &&
+    (
+      nums.includes(n) ||
+      excludeNums.includes(n) ||
+      nums.filter(x => x % 10 === n % 10).length >= 1
+    )
+  );
 }
 } else {
   n = Math.floor(Math.random() * 45) + 1;
@@ -239,26 +272,58 @@ seenSets.add(key);
          matchCount,
          sectionCounts,
       });
+      elitePool.push({
+  nums: [...nums],
+  score: finalScore,
+});
+
+elitePool.sort((a, b) => b.score - a.score);
+
+if (elitePool.length > 200) {
+  elitePool.length = 200;
+}
     }
     
 const top10 = [];
+const lastPattern = new Set();
+const diversityCheck = (a, b) => {
+  let same = 0;
 
+  for (const n of a) {
+    if (b.includes(n)) same++;
+  }
+
+  const lastA = new Set(a.map(n => n % 10));
+  const lastB = new Set(b.map(n => n % 10));
+
+  let lastSame = 0;
+
+  lastA.forEach(v => {
+    if (lastB.has(v)) lastSame++;
+  });
+
+  return same >= 3 || lastSame >= 4;
+};
 allSets.sort((a, b) => b.score - a.score);
 
 for (const set of allSets) {
-  const similar = top10.some((item) => {
-    let same = 0;
-
-    for (const n of item.nums) {
-      if (set.nums.includes(n)) same++;
-    }
-
-    return same >= 3;
-  });
+  const similar = top10.some((item) =>
+  diversityCheck(item.nums, set.nums)
+);
 
   if (!similar) {
+  const avg =
+    top10.length === 0
+      ? 0
+      : top10.reduce((s, x) => s + x.score, 0) / top10.length;
+
+  if (
+    top10.length < 3 ||
+    Math.abs(set.score - avg) > 3
+  ) {
     top10.push(set);
   }
+}
 
   if (top10.length >= 10) break;
 }
@@ -341,13 +406,7 @@ const saveNumbers = (nums, idx) => {
   //return updated;
 //});
   supabase
-  .from("saved_numbers")
-  .insert([
-    {
-      nums: nums.join(","),
-      score: idx,
-    },
-  ])
+
   .then(({ error }) => {
     if (error) {
       console.error("Supabase 저장 실패:", error);
