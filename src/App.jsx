@@ -97,17 +97,21 @@ const elitePool = [];
  for (let k = 0; k < generateCount; k++){
       const nums = [...fixedNums];
 if (elitePool.length > 30 && Math.random() < 0.9) {
-  const parent =
-    elitePool[Math.floor(Math.random() * elitePool.length)];
+  const parent1 =
+  elitePool[Math.floor(Math.random() * elitePool.length)];
 
-  parent.nums.forEach((n) => {
+const parent2 =
+  elitePool[Math.floor(Math.random() * elitePool.length)];
+
+[...parent1.nums, ...parent2.nums]
+  .sort(() => Math.random() - 0.5)
+  .forEach((n) => {
     if (
       nums.length < 6 &&
       !nums.includes(n) &&
       !excludeNums.includes(n)
     ) {
       nums.push(n);
-      
     }
   });
 }
@@ -120,6 +124,7 @@ if (Math.random() < 0.55) {
 let totalWeight = 0;
 
 for (let i = 1; i <= 45; i++) {
+  
   if (nums.includes(i) || excludeNums.includes(i)) continue;
 
   let pairBonus = 0;
@@ -137,14 +142,23 @@ const sameLastDigit = nums.filter(
 
 const weight =
   1 +
-  (aiLearning[i] || 0) * 0.30 +
-  (recentFrequency[i] || 0) * 0.30 +
-  pairBonus * 0.10 +
-  Math.random() * 4.0 -
-  sameLastDigit * 4.5;
+  (aiLearning[i] || 0) * 0.45 +
+  (recentFrequency[i] || 0) * 0.03 +
+  pairBonus * 0.30 +
+  Math.random() * 1.8-
+  sameLastDigit * 7;
 
-totalWeight += weight;
-weights.push({ num: i, total: totalWeight });
+let finalWeight = weight;
+
+if (i >= 41) {
+  finalWeight -= 2.5;
+}
+
+totalWeight += finalWeight;
+weights.push({
+  num: i,
+  total: totalWeight,
+});
   
 }
 
@@ -193,7 +207,11 @@ if (consecutive >= 2) {
       }
 
       nums.sort((a, b) => a - b);
+const high40 = nums.filter((n) => n >= 40).length;
 
+if (high40 >= 2) {
+  continue;
+}
       const odd = nums.filter((n) => n % 2).length;
       
       const high = nums.filter((n) => n > 22).length;
@@ -231,15 +249,15 @@ finalScore += learningBonus;
 const pairBonus = getPairLearningBonus(nums, pairLearning);
 finalScore += pairBonus;
 if (matchCount === 0) {
-  finalScore += 12;
+  finalScore += 8;
 } else if (matchCount === 1) {
-  finalScore += 6;
+  finalScore += 4;
 }
 
 
 const hotCount = getHotCount(nums);
 
-finalScore += hotCount * 2.5;
+finalScore += hotCount * 1.5;
 //const recentHotBonus = nums.reduce((bonus, num) => {
   //return bonus + (recentFrequency[num] || 0) * 0.5;
 //}, 0);
@@ -249,7 +267,7 @@ const overHotCount = nums.filter(
   (num) => (recentFrequency[num] || 0) >= 6
 ).length;
 
-finalScore -= overHotCount * 2.5;
+finalScore -= overHotCount * 6;
 
 const balancedCount = nums.filter(
   (n) => hotNumbers.includes(n) || coldNumbers.includes(n)
@@ -260,7 +278,7 @@ if (balancedCount >= 4) {
 }
 const coldCount = getColdCount(nums);
 
-finalScore += coldCount * 1.5;
+finalScore += coldCount * 2.5;
 if (matchCount >= 3) finalScore -= 20;
 else if (matchCount === 2) finalScore -= 10;
 else if (matchCount === 0) finalScore += 5;
@@ -281,14 +299,14 @@ if (maxSection >= 4) continue;
 if (uniqueLastDigits <= 2) continue;
 if (maxGap >= 18) continue;
 if (matchCount >= 4) continue;
-if (finalScore < 80) continue;
+if (finalScore < 90) continue;
 const key = nums.join("-");
 const patternKey = nums.map(n => n % 10).sort((a, b) => a - b).join("-");
 if (seenSets.has(key)) continue;
 if (seenPattern.has(patternKey)) continue;
 seenSets.add(key);
 seenPattern.add(patternKey);
-finalScore += Math.random() * 1.2;
+finalScore += Math.random() * 0.3;
       allSets.push({
         nums,
           score: finalScore,
