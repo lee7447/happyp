@@ -96,16 +96,18 @@ const elitePool = [];
 
  for (let k = 0; k < generateCount; k++){
       const nums = [...fixedNums];
-if (elitePool.length > 30 && Math.random() < 0.9) {
+if (elitePool.length > 60 && Math.random() < 0.65) {
+
   const parent1 =
-  elitePool[Math.floor(Math.random() * elitePool.length)];
+    elitePool[Math.floor(Math.random() * elitePool.length)];
 
-const parent2 =
-  elitePool[Math.floor(Math.random() * elitePool.length)];
+  const parent2 =
+    elitePool[Math.floor(Math.random() * elitePool.length)];
 
-[...parent1.nums, ...parent2.nums]
-  .sort(() => Math.random() - 0.5)
-  .forEach((n) => {
+  const genes = [...parent1.nums, ...parent2.nums]
+    .sort(() => Math.random() - 0.5);
+
+  genes.forEach((n) => {
     if (
       nums.length < 6 &&
       !nums.includes(n) &&
@@ -114,6 +116,7 @@ const parent2 =
       nums.push(n);
     }
   });
+
 }
       while (nums.length < 6) {
         let n;
@@ -142,16 +145,16 @@ const sameLastDigit = nums.filter(
 
 const weight =
   1 +
-  (aiLearning[i] || 0) * 0.45 +
-  (recentFrequency[i] || 0) * 0.03 +
-  pairBonus * 0.30 +
-  Math.random() * 1.8-
-  sameLastDigit * 7;
+  (aiLearning[i] || 0) * 0.42 +
+  (recentFrequency[i] || 0) * 0.01 +
+  pairBonus * 0.35 +
+  Math.random() * 2.2-
+  sameLastDigit * 8;
 
 let finalWeight = weight;
 
-if (i >= 41) {
-  finalWeight -= 2.5;
+if (i >= 42) {
+  finalWeight -= 2.2;
 }
 
 totalWeight += finalWeight;
@@ -205,11 +208,26 @@ if (consecutive >= 2) {
 }
         }
       }
+// Mutation (5%)
+if (Math.random() < 0.05) {
 
+  const idx = Math.floor(Math.random() * nums.length);
+
+  let newNum;
+
+  do {
+    newNum = Math.floor(Math.random() * 45) + 1;
+  } while (
+    nums.includes(newNum) ||
+    excludeNums.includes(newNum)
+  );
+
+  nums[idx] = newNum;
+}
       nums.sort((a, b) => a - b);
 const high40 = nums.filter((n) => n >= 40).length;
 
-if (high40 >= 2) {
+if (high40 >= 3) {
   continue;
 }
       const odd = nums.filter((n) => n % 2).length;
@@ -228,7 +246,7 @@ for (let i = 0; i < nums.length - 1; i++) {
   100 -
   Math.abs(odd - 3) * 6 -
   Math.abs(high - 3) * 5 -
-  Math.abs(sum - (125 + Math.random() * 25)) * 0.12 -
+  Math.abs(sum - 135) * 0.10
   consecutivePenalty;
   
 const matchCount = nums.filter((n) =>
@@ -283,7 +301,15 @@ if (matchCount >= 3) finalScore -= 20;
 else if (matchCount === 2) finalScore -= 10;
 else if (matchCount === 0) finalScore += 5;
 finalScore -= lastDigitPenalty;
+const frequencyPenalty = nums.reduce((sum, n) => {
+  return sum + Math.max(0, (recentFrequency[n] || 0) - 2);
+}, 0);
 
+finalScore -= frequencyPenalty * 0.6;
+const fatigue =
+  nums.reduce((sum, n) => sum + (aiLearning[n] || 0), 0);
+
+finalScore -= fatigue * 0.08;
 
 if (maxSection >= 4) finalScore -= 15;
 else if (maxSection === 3) finalScore -= 5;
@@ -313,10 +339,16 @@ finalScore += Math.random() * 0.3;
          matchCount,
          sectionCounts,
       });
-      elitePool.push({
-  nums: [...nums],
-  score: finalScore,
+      const isSimilar = elitePool.some(item => {
+  return item.nums.filter(n => nums.includes(n)).length >= 5;
 });
+
+if (!isSimilar) {
+  elitePool.push({
+    nums: [...nums],
+    score: finalScore,
+  });
+}
 
 elitePool.sort((a, b) => b.score - a.score);
 
@@ -436,9 +468,7 @@ const saveNumbers = (nums, idx) => {
   //setAiLearning((prev) => {
   //const updated = { ...prev };
 
-  //nums.forEach((num) => {
-    //updated[num] = (updated[num] || 0) + 1;
-  //});
+  
 
   //return updated;
 //});
