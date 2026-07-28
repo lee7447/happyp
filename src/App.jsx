@@ -399,7 +399,10 @@ for (const set of allSets) {
 
 setResults(top10);
 
-setResults(top10);
+if (top10.length === 0) {
+  alert("생성된 조합이 없습니다.");
+  return;
+}
     const bestSet = top10[0];
 const highestScore = Math.max(
   ...history.map((h) => h.score),
