@@ -263,19 +263,23 @@ const uniqueLastDigits = new Set(lastDigits).size;
 const maxGap = Math.max(
   ...nums.slice(1).map((n, i) => n - nums[i])
 );
+
 const lastDigitPenalty = (6 - uniqueLastDigits) * 3;
 const sectionCounts = getSectionCounts(nums);
 const maxSection = Math.max(...sectionCounts);
 let finalScore = score;
+const varianceBonus =
+  new Set(nums.map(n => Math.floor((n - 1) / 10))).size * 2;
 
+finalScore += varianceBonus;
 const learningBonus = getLearningBonus(nums, aiLearning);
 finalScore += learningBonus;
 const pairBonus = getPairLearningBonus(nums, pairLearning);
 finalScore += pairBonus;
 if (matchCount === 0) {
-  finalScore += 8;
+  finalScore += 10;
 } else if (matchCount === 1) {
-  finalScore += 4;
+  finalScore += 2;
 }
 
 
@@ -291,7 +295,7 @@ const overHotCount = nums.filter(
   (num) => (recentFrequency[num] || 0) >= 6
 ).length;
 
-finalScore -= overHotCount * 6;
+finalScore -= overHotCount * 8;
 
 const balancedCount = nums.filter(
   (n) => hotNumbers.includes(n) || coldNumbers.includes(n)
@@ -311,7 +315,7 @@ const frequencyPenalty = nums.reduce((sum, n) => {
   return sum + Math.max(0, (recentFrequency[n] || 0) - 2);
 }, 0);
 
-finalScore -= frequencyPenalty * 0.6;
+finalScore -= frequencyPenalty * 1.0;
 const fatigue =
   nums.reduce((sum, n) => sum + (aiLearning[n] || 0), 0);
 
