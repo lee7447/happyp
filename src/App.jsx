@@ -167,7 +167,13 @@ weights.push({
 
 const rand = Math.random() * totalWeight;
 
-n = weights.find((w) => rand <= w.total).num;
+const selected = weights.find((w) => rand <= w.total);
+
+if (!selected) {
+  n = Math.floor(Math.random() * 45) + 1;
+} else {
+  n = selected.num;
+}
 if (Math.random() < 0.8) {
   let retry = 0;
 
