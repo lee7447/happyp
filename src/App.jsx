@@ -152,7 +152,8 @@ const weight =
   sameLastDigit * 8;
 
 let finalWeight = weight;
-
+if (finalWeight < 0.2) finalWeight = 0.2;
+if (finalWeight > 15) finalWeight = 15;
 if (i >= 42) {
   finalWeight -= 2.2;
 }
@@ -232,10 +233,10 @@ if (Math.random() < 0.05) {
 }
       nums.sort((a, b) => a - b);
 const high40 = nums.filter((n) => n >= 40).length;
+const high42 = nums.filter((n) => n >= 42).length;
 
-if (high40 >= 3) {
-  continue;
-}
+if (high40 >= 3) continue;
+if (high42 >= 2) continue;
       const odd = nums.filter((n) => n % 2).length;
       
       const high = nums.filter((n) => n > 22).length;
@@ -273,7 +274,13 @@ const varianceBonus =
 
 finalScore += varianceBonus;
 const learningBonus = getLearningBonus(nums, aiLearning);
+if (learningBonus > 12) {
+  finalScore += 2;
+}
 finalScore += learningBonus;
+if (matchCount >= 2) {
+  finalScore += 3;
+}
 const pairBonus = getPairLearningBonus(nums, pairLearning);
 finalScore += pairBonus;
 if (matchCount === 0) {
