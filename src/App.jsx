@@ -19,6 +19,7 @@ const [exclude, setExclude] = useState(() => {
   return localStorage.getItem("excludeNums") || "";
 });
   const [results, setResults] = useState([]);
+  const [aiCombo] = useState({});
 const [saved, setSaved] = useState(() => {
   const stored = localStorage.getItem("savedLotto");
   return stored ? JSON.parse(stored) : [];
@@ -91,6 +92,7 @@ const recentSumAverage =
   const seenSets = new Set();
   const seenPattern = new Set();
     const allSets = [];
+    let eliteSets = [];
 const elitePool = [];
     const MAX_ELITE =500;
 
@@ -278,6 +280,9 @@ if (learningBonus > 12) {
   finalScore += 2;
 }
 finalScore += learningBonus;
+const comboKey = nums.slice().sort((a, b) => a - b).join("-");
+
+finalScore += (aiCombo[comboKey] || 0) * 0.5;
 if (matchCount >= 2) {
   finalScore += 3;
 }
@@ -395,7 +400,47 @@ const diversityCheck = (a, b) => {
   return same >= 3 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
+eliteSets = allSets.slice(0, 100);
+for (let i = 0; i < 30; i++) {
+  const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
+  const p2 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
 
+  const child = [...new Set([...p1.nums.slice(0, 3), ...p2.nums.slice(3)])];
+
+  while (child.length < 6) {
+    const n = Math.floor(Math.random() * 45) + 1;
+    if (!child.includes(n)) child.push(n);
+  }
+
+  child.sort((a, b) => a - b);
+
+  allSets.push({
+    nums: child,
+    score: (p1.score + p2.score) / 2,
+  });
+}
+for (let i = 0; i < 15; i++) {
+  const idx = Math.floor(Math.random() * allSets.length);
+
+  const child = [...allSets[idx].nums];
+
+  const pos = Math.floor(Math.random() * 6);
+
+  let newNum;
+
+  do {
+    newNum = Math.floor(Math.random() * 45) + 1;
+  } while (child.includes(newNum));
+
+  child[pos] = newNum;
+
+  child.sort((a, b) => a - b);
+
+  allSets.push({
+    nums: child,
+    score: allSets[idx].score + 0.3,
+  });
+}
 for (const set of allSets) {
   const similar = top10.some((item) =>
   diversityCheck(item.nums, set.nums)
@@ -413,9 +458,15 @@ for (const set of allSets) {
 
   if (top10.length >= 10) break;
 }
-
+top10.forEach((set) => {
+  const key = set.nums.slice().sort((a, b) => a - b).join("-");
+  aiCombo[key] = (aiCombo[key] || 0) + 1;
+});
 setResults(top10);
-
+top10.forEach((set) => {
+  const key = set.nums.slice().sort((a, b) => a - b).join("-");
+  aiCombo[key] = (aiCombo[key] || 0) + 1;
+});
 if (top10.length === 0) {
   alert("생성된 조합이 없습니다.");
   return;
