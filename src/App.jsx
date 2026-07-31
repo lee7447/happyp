@@ -255,7 +255,7 @@ for (let i = 0; i < nums.length - 1; i++) {
   100 -
   Math.abs(odd - 3) * 6 -
   Math.abs(high - 3) * 5 -
-  Math.abs(sum - 135) * 0.10
+  Math.abs(sum - 135) * 0.10 -
   consecutivePenalty;
   
 const matchCount = nums.filter((n) =>
@@ -319,6 +319,31 @@ if (balancedCount >= 4) {
 const coldCount = getColdCount(nums);
 
 finalScore += coldCount * 2.5;
+const balanceBonus =
+  Math.min(odd, 6 - odd) +
+  Math.min(high, 6 - high);
+
+finalScore += balanceBonus * 1.2;
+const spread =
+  nums[5] - nums[0];
+
+if (spread >= 28 && spread <= 38) {
+  finalScore += 4;
+} else {
+  finalScore -= 3;
+}
+const lowCount = nums.filter(n => n <= 22).length;
+const highCount2 = nums.filter(n => n >= 23).length;
+
+if (
+  (lowCount === 3 && highCount2 === 3) ||
+  (lowCount === 2 && highCount2 === 4) ||
+  (lowCount === 4 && highCount2 === 2)
+) {
+  finalScore += 4;
+} else {
+  finalScore -= 2;
+}
 if (matchCount >= 3) finalScore -= 20;
 else if (matchCount === 2) finalScore -= 10;
 else if (matchCount === 0) finalScore += 5;
@@ -356,11 +381,14 @@ seenSets.add(key);
 seenPattern.add(patternKey);
 finalScore += Math.random() * 0.3;
       allSets.push({
-        nums,
-          score: finalScore,
-         matchCount,
-         sectionCounts,
-      });
+  nums,
+  score: finalScore,
+  matchCount,
+  sectionCounts,
+  sum,
+  odd,
+  high,
+});
       const isSimilar = elitePool.some(item => {
   return item.nums.filter(n => nums.includes(n)).length >= 5;
 });
@@ -400,6 +428,56 @@ const diversityCheck = (a, b) => {
   return same >= 3 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
+allSets.splice(500);
+const unique = [];
+
+for (const set of allSets) {
+  if (
+    !unique.some(
+      (u) =>
+        u.nums.filter((n) => set.nums.includes(n)).length >= 4
+    )
+  ) {
+    unique.push(set);
+  }
+
+  if (unique.length >= 300) break;
+}
+
+allSets.length = 0;
+allSets.push(...unique);
+allSets.forEach((set) => {
+  let bonus = 0;
+
+  if (set.sum >= 105 && set.sum <= 165) bonus += 3;
+
+  if (set.odd === 3 || set.odd === 4) bonus += 2;
+
+  if (set.high === 3) bonus += 2;
+
+  const primeCount = set.nums.filter((n) =>
+  [2,3,5,7,11,13,17,19,23,29,31,37,41,43].includes(n)
+).length;
+
+if (primeCount >= 2 && primeCount <= 3) {
+  bonus += 2;
+}
+
+  set.score += bonus;
+  const nums = set.nums;
+
+const gaps = [];
+for (let i = 1; i < nums.length; i++) {
+  gaps.push(nums[i] - nums[i - 1]);
+}
+
+const avgGap =
+  gaps.reduce((a, b) => a + b, 0) / gaps.length;
+
+if (avgGap >= 5 && avgGap <= 9) {
+  set.score += 3;
+}
+});
 eliteSets = allSets.slice(0, 100);
 for (let i = 0; i < 30; i++) {
   const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
