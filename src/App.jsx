@@ -51,6 +51,7 @@ const loadLatestWinning = async () => {
   }
 };
   const generate = () => {
+    setResults([]);
     console.log(generateTurbo);
     const recentHistory = winningHistory.slice(0, 50);
     const recentFrequency = {};
@@ -94,11 +95,12 @@ const recentSumAverage =
     const allSets = [];
     let eliteSets = [];
 const elitePool = [];
-    const MAX_ELITE =500;
+    const MAX_ELITE =3000;
 
  for (let k = 0; k < generateCount; k++){
+  
       const nums = [...fixedNums];
-if (elitePool.length > 60 && Math.random() < 0.65) {
+if (elitePool.length > 300 && Math.random() < 0.90) {
 
   const parent1 =
     elitePool[Math.floor(Math.random() * elitePool.length)];
@@ -133,7 +135,16 @@ for (let i = 1; i <= 45; i++) {
   if (nums.includes(i) || excludeNums.includes(i)) continue;
 
   let pairBonus = 0;
+const sectionBalance =
+  nums.filter(x => x <= 10).length <= 2 &&
+  nums.filter(x => x > 10 && x <= 20).length <= 2 &&
+  nums.filter(x => x > 20 && x <= 30).length <= 2 &&
+  nums.filter(x => x > 30 && x <= 40).length <= 2 &&
+  nums.filter(x => x > 40).length <= 2;
 
+if (sectionBalance) {
+  pairBonus += 1.2;
+}
   nums.forEach((x) => {
     const key = [x, i].sort((a, b) => a - b).join("-");
     pairBonus += pairLearning[key] || 0;
@@ -154,6 +165,11 @@ const weight =
   sameLastDigit * 8;
 
 let finalWeight = weight;
+const spread = 45 - i;
+
+if (spread >= 10 && spread <= 35) {
+  finalWeight += 0.8;
+}
 if (finalWeight < 0.2) finalWeight = 0.2;
 if (finalWeight > 15) finalWeight = 15;
 if (i >= 42) {
@@ -168,7 +184,7 @@ weights.push({
   
 }
 
-const rand = Math.random() * totalWeight;
+const rand = (Math.random() ** 1.25) * totalWeight;
 
 const selected = weights.find((w) => rand <= w.total);
 
@@ -276,6 +292,10 @@ const varianceBonus =
 
 finalScore += varianceBonus;
 const learningBonus = getLearningBonus(nums, aiLearning);
+const diversityBonus =
+  new Set(nums.map(n => n % 10)).size * 0.8;
+
+finalScore += diversityBonus;
 if (learningBonus > 12) {
   finalScore += 2;
 }
@@ -288,6 +308,10 @@ if (matchCount >= 2) {
 }
 const pairBonus = getPairLearningBonus(nums, pairLearning);
 finalScore += pairBonus;
+const evenOddBalance =
+  Math.abs(odd - 3) <= 1 ? 2 : 0;
+
+finalScore += evenOddBalance;
 if (matchCount === 0) {
   finalScore += 10;
 } else if (matchCount === 1) {
@@ -356,7 +380,7 @@ finalScore -= frequencyPenalty * 1.0;
 const fatigue =
   nums.reduce((sum, n) => sum + (aiLearning[n] || 0), 0);
 
-finalScore -= fatigue * 0.08;
+finalScore -= fatigue * 0.04;
 
 if (maxSection >= 4) finalScore -= 15;
 else if (maxSection === 3) finalScore -= 5;
@@ -372,14 +396,14 @@ if (maxSection >= 4) continue;
 if (uniqueLastDigits <= 2) continue;
 if (maxGap >= 18) continue;
 if (matchCount >= 4) continue;
-if (finalScore < 90) continue;
+if (finalScore < 95) continue;
 const key = nums.join("-");
 const patternKey = nums.map(n => n % 10).sort((a, b) => a - b).join("-");
 if (seenSets.has(key)) continue;
 if (seenPattern.has(patternKey)) continue;
 seenSets.add(key);
 seenPattern.add(patternKey);
-finalScore += Math.random() * 0.3;
+finalScore += Math.random() * 0.05;
       allSets.push({
   nums,
   score: finalScore,
@@ -402,12 +426,22 @@ if (!isSimilar) {
 
 elitePool.sort((a, b) => b.score - a.score);
 
+elitePool.sort((a, b) => {
+  if (b.score !== a.score) return b.score - a.score;
+
+  const spreadA = a.nums[5] - a.nums[0];
+  const spreadB = b.nums[5] - b.nums[0];
+
+  return Math.abs(33 - spreadA) - Math.abs(33 - spreadB);
+});
 if (elitePool.length > MAX_ELITE) {
   elitePool.length = MAX_ELITE;
 }
     }
     
 const top10 = [];
+const top20 = [];
+const MAX_RESULTS = 10;
 const lastPattern = new Set();
 const diversityCheck = (a, b) => {
   let same = 0;
@@ -479,7 +513,7 @@ if (avgGap >= 5 && avgGap <= 9) {
 }
 });
 eliteSets = allSets.slice(0, 100);
-for (let i = 0; i < 30; i++) {
+for (let i = 0; i < 120; i++) {
   const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
   const p2 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
 
@@ -497,7 +531,7 @@ for (let i = 0; i < 30; i++) {
     score: (p1.score + p2.score) / 2,
   });
 }
-for (let i = 0; i < 15; i++) {
+for (let i = 0; i < 80; i++) {
   const idx = Math.floor(Math.random() * allSets.length);
 
   const child = [...allSets[idx].nums];
@@ -531,16 +565,25 @@ for (const set of allSets) {
 
   if (!overlap) {
     top10.push(set);
+    top20.push(set);
   }
 }
 
-  if (top10.length >= 10) break;
+  if (top20.length >= 20) break;
 }
 top10.forEach((set) => {
   const key = set.nums.slice().sort((a, b) => a - b).join("-");
   aiCombo[key] = (aiCombo[key] || 0) + 1;
 });
-setResults(top10);
+top20.sort((a, b) => b.score - a.score);
+
+const finalTop10 = top20.slice(0, MAX_RESULTS);
+
+setResults(finalTop10);
+elitePool.length = 0;
+eliteSets.length = 0;
+seenSets.clear();
+seenPattern.clear();
 top10.forEach((set) => {
   const key = set.nums.slice().sort((a, b) => a - b).join("-");
   aiCombo[key] = (aiCombo[key] || 0) + 1;
@@ -549,7 +592,7 @@ if (top10.length === 0) {
   alert("생성된 조합이 없습니다.");
   return;
 }
-    const bestSet = top10[0];
+    const bestSet = finalTop10[0];
 const highestScore = Math.max(
   ...history.map((h) => h.score),
   0
@@ -912,7 +955,7 @@ const topNumbers = Object.entries(frequency)
   <p>✔ 끝자리 다양성 우수</p>
 )}
 
-{Math.max(...set.sectionCounts) <= 2 && (
+{set.sectionCounts && Math.max(...set.sectionCounts) <= 2 && (
   <p>✔ 번호 분포 균형 우수</p>
 )}
 
@@ -928,11 +971,11 @@ const topNumbers = Object.entries(frequency)
 </p>
 <p>
   📊 번호분포 :
-  {set.sectionCounts[0]} /
-  {set.sectionCounts[1]} /
-  {set.sectionCounts[2]} /
-  {set.sectionCounts[3]} /
-  {set.sectionCounts[4]}
+  {(set.sectionCounts || [0, 0, 0, 0, 0])[0]} /
+  {(set.sectionCounts || [0, 0, 0, 0, 0])[1]} /
+  {(set.sectionCounts || [0, 0, 0, 0, 0])[2]} /
+  {(set.sectionCounts || [0, 0, 0, 0, 0])[3]} /
+  {(set.sectionCounts || [0, 0, 0, 0, 0])[4]}
 </p>
 
 {Math.max(
