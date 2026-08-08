@@ -462,7 +462,7 @@ const diversityCheck = (a, b) => {
   return same >= 3 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
-allSets.splice(500);
+allSets.splice(1500);
 const unique = [];
 
 for (const set of allSets) {
@@ -480,6 +480,7 @@ for (const set of allSets) {
 
 allSets.length = 0;
 allSets.push(...unique);
+allSets.sort((a, b) => b.score - a.score);
 allSets.forEach((set) => {
   let bonus = 0;
 
@@ -512,7 +513,7 @@ if (avgGap >= 5 && avgGap <= 9) {
   set.score += 3;
 }
 });
-eliteSets = allSets.slice(0, 100);
+eliteSets = allSets.slice(0, 300);
 for (let i = 0; i < 120; i++) {
   const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
   const p2 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
@@ -528,7 +529,7 @@ for (let i = 0; i < 120; i++) {
 
   allSets.push({
     nums: child,
-    score: (p1.score + p2.score) / 2,
+    score: getAIScore(child),
   });
 }
 for (let i = 0; i < 80; i++) {
@@ -550,7 +551,7 @@ for (let i = 0; i < 80; i++) {
 
   allSets.push({
     nums: child,
-    score: allSets[idx].score + 0.3,
+    score: getAIScore(child),
   });
 }
 for (const set of allSets) {
@@ -577,7 +578,9 @@ top10.forEach((set) => {
 });
 top20.sort((a, b) => b.score - a.score);
 
-const finalTop10 = top20.slice(0, MAX_RESULTS);
+const finalTop10 = top20
+  .sort((a, b) => b.score - a.score)
+  .slice(0, MAX_RESULTS);
 
 setResults(finalTop10);
 elitePool.length = 0;
