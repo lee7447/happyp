@@ -40,6 +40,11 @@ const [history, setHistory] = useState(() => {
 const [winning, setWinning] = useState(() => {
   return localStorage.getItem("winningNums") || "";
 });
+
+const [hotRecent, setHotRecent] = useState(() => {
+  return localStorage.getItem("hotRecentNums") || "";
+});
+
 const [generateCount, setGenerateCount] = useState(50000);
 const loadLatestWinning = async () => {
   const nums = await getLatestWinningNumbers(1180);
@@ -50,10 +55,37 @@ const loadLatestWinning = async () => {
     alert("당첨번호를 가져오지 못했습니다.");
   }
 };
+const evaluateCombo = (nums) => {
+  const odd = nums.filter((n) => n % 2 === 1).length;
+  const high = nums.filter((n) => n > 22).length;
+  const sum = nums.reduce((a, b) => a + b, 0);
+
+  let score =
+    100 -
+    Math.abs(odd - 3) * 6 -
+    Math.abs(high - 3) * 5 -
+    Math.abs(sum - 135) * 0.10;
+
+  const sectionCounts = getSectionCounts(nums);
+  const uniqueLastDigits = new Set(nums.map(n => n % 10)).size;
+
+  score += new Set(
+    nums.map(n => Math.floor((n - 1) / 10))
+  ).size * 2;
+
+  score += uniqueLastDigits * 0.8;
+
+  score += getLearningBonus(nums, aiLearning);
+  score += getPairLearningBonus(nums, pairLearning);
+
+  if (odd >= 2 && odd <= 4) score += 2;
+
+  return score;
+};
   const generate = () => {
     setResults([]);
     console.log(generateTurbo);
-    const recentHistory = winningHistory.slice(0, 50);
+    const recentHistory = winningHistory.slice(0, 60);
     const recentFrequency = {};
 
 recentHistory.forEach((draw) => {
@@ -87,6 +119,10 @@ const recentSumAverage =
       .filter((n) => !isNaN(n));
 
       const winningNums = winning
+  .split(",")
+  .map((n) => parseInt(n))
+  .filter((n) => !isNaN(n));
+  const hotRecentNums = hotRecent
   .split(",")
   .map((n) => parseInt(n))
   .filter((n) => !isNaN(n));
@@ -156,12 +192,15 @@ const sameLastDigit = nums.filter(
   (x) => x % 10 === lastDigit
 ).length;
 
+const hotRecentBonus = hotRecentNums.includes(i) ? 3 : 0;
+
 const weight =
   1 +
   (aiLearning[i] || 0) * 0.42 +
   (recentFrequency[i] || 0) * 0.01 +
+  hotRecentBonus +
   pairBonus * 0.35 +
-  Math.random() * 2.2-
+  Math.random() * 2.2 -
   sameLastDigit * 8;
 
 let finalWeight = weight;
@@ -414,7 +453,7 @@ finalScore += Math.random() * 0.05;
   high,
 });
       const isSimilar = elitePool.some(item => {
-  return item.nums.filter(n => nums.includes(n)).length >= 5;
+  return item.nums.filter(n => nums.includes(n)).length >= 4;
 });
 
 if (!isSimilar) {
@@ -459,10 +498,10 @@ const diversityCheck = (a, b) => {
     if (lastB.has(v)) lastSame++;
   });
 
-  return same >= 3 || lastSame >= 4;
+  return same >= 4 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
-allSets.splice(1500);
+allSets.splice(500);
 const unique = [];
 
 for (const set of allSets) {
@@ -480,7 +519,6 @@ for (const set of allSets) {
 
 allSets.length = 0;
 allSets.push(...unique);
-allSets.sort((a, b) => b.score - a.score);
 allSets.forEach((set) => {
   let bonus = 0;
 
@@ -513,7 +551,7 @@ if (avgGap >= 5 && avgGap <= 9) {
   set.score += 3;
 }
 });
-eliteSets = allSets.slice(0, 300);
+eliteSets = allSets.slice(0, 100);
 for (let i = 0; i < 120; i++) {
   const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
   const p2 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
@@ -528,9 +566,9 @@ for (let i = 0; i < 120; i++) {
   child.sort((a, b) => a - b);
 
   allSets.push({
-    nums: child,
-    score: getAIScore(child),
-  });
+  nums: child,
+  score: getAIScore(child),
+});
 }
 for (let i = 0; i < 80; i++) {
   const idx = Math.floor(Math.random() * allSets.length);
@@ -554,6 +592,7 @@ for (let i = 0; i < 80; i++) {
     score: getAIScore(child),
   });
 }
+allSets.sort((a, b) => b.score - a.score);
 for (const set of allSets) {
   const similar = top10.some((item) =>
   diversityCheck(item.nums, set.nums)
@@ -578,9 +617,19 @@ top10.forEach((set) => {
 });
 top20.sort((a, b) => b.score - a.score);
 
-const finalTop10 = top20
-  .sort((a, b) => b.score - a.score)
-  .slice(0, MAX_RESULTS);
+const finalTop10 = [];
+const usedKeys = new Set();
+
+for (const set of top20.sort((a, b) => b.score - a.score)) {
+  const key = set.nums.slice().sort((a, b) => a - b).join(",");
+
+  if (usedKeys.has(key)) continue;
+
+  finalTop10.push(set);
+  usedKeys.add(key);
+
+  if (finalTop10.length >= MAX_RESULTS) break;
+}
 
 setResults(finalTop10);
 elitePool.length = 0;
@@ -624,21 +673,64 @@ const copyNumbers = (nums) => {
 const getAIScore = (nums) => {
   let score = 0;
 
-  const odd = nums.filter((n) => n % 2 === 1).length;
+  const sorted = [...nums].sort((a, b) => a - b);
 
-  if (odd >= 2 && odd <= 4) {
-    score += 20;
-  }
+  // 홀짝 균형
+  const odd = sorted.filter(n => n % 2 === 1).length;
+  if (odd >= 2 && odd <= 4) score += 20;
 
+  // 번호 구간 분포
   const sections = [
-    nums.filter((n) => n <= 10).length,
-    nums.filter((n) => n > 10 && n <= 20).length,
-    nums.filter((n) => n > 20 && n <= 30).length,
-    nums.filter((n) => n > 30 && n <= 40).length,
-    nums.filter((n) => n > 40).length,
+    sorted.filter(n => n <= 10).length,
+    sorted.filter(n => n > 10 && n <= 20).length,
+    sorted.filter(n => n > 20 && n <= 30).length,
+    sorted.filter(n => n > 30 && n <= 40).length,
+    sorted.filter(n => n > 40).length,
   ];
 
-  score += sections.filter((v) => v > 0).length * 5;
+  score += sections.filter(v => v > 0).length * 5;
+
+  // 합계
+  const sum = sorted.reduce((a, b) => a + b, 0);
+
+  if (sum >= 105 && sum <= 165) {
+    score += 3;
+  }
+
+  // 고번호
+  const high = sorted.filter(n => n >= 23).length;
+
+  if (high === 3) {
+    score += 2;
+  }
+
+  // 소수
+  const primes = [
+    2,3,5,7,11,13,17,19,
+    23,29,31,37,41,43
+  ];
+
+  const primeCount = sorted.filter(n =>
+    primes.includes(n)
+  ).length;
+
+  if (primeCount >= 2 && primeCount <= 3) {
+    score += 2;
+  }
+
+  // 번호 간격
+  const gaps = [];
+
+  for (let i = 1; i < sorted.length; i++) {
+    gaps.push(sorted[i] - sorted[i - 1]);
+  }
+
+  const avgGap =
+    gaps.reduce((a, b) => a + b, 0) / gaps.length;
+
+  if (avgGap >= 5 && avgGap <= 9) {
+    score += 3;
+  }
 
   return score;
 };
@@ -736,6 +828,12 @@ useEffect(() => {
     winning
   );
 }, [winning]);
+useEffect(() => {
+  localStorage.setItem(
+    "hotRecentNums",
+    hotRecent
+  );
+}, [hotRecent]);
 useEffect(() => {
   localStorage.setItem(
     "fixedNums",
@@ -863,6 +961,14 @@ const topNumbers = Object.entries(frequency)
   value={winning}
   onChange={(e) => setWinning(e.target.value)}
 />
+<br /><br />
+
+<input
+  placeholder="최근 60회 최다출현 번호 (예: 3,15,16,27,28,31)"
+  value={hotRecent}
+  onChange={(e) => setHotRecent(e.target.value)}
+/>
+
 <p
   style={{
     color: "#666",
@@ -870,7 +976,16 @@ const topNumbers = Object.entries(frequency)
     marginTop: "5px",
   }}
 >
-💡 최신 당첨번호 6개를 입력하면 AI가 해당 번호를 회피하여 분석합니다.
+💡 최근 60회 최다출현 번호를 AI 분석에 반영합니다.
+</p>
+<p
+  style={{
+    color: "#666",
+    fontSize: "14px",
+    marginTop: "5px",
+  }}
+>
+💡 최근 당첨번호 6개를 입력하면 AI가 분석 점수에 반영합니다.
 </p>
       <br /><br />
 <input
