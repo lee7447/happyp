@@ -433,9 +433,10 @@ if (sum < 90 || sum > 190) continue;
 if (maxSection >= 4) continue;
 
 if (uniqueLastDigits <= 2) continue;
-if (maxGap >= 18) continue;
+if (uniqueLastDigits === 3) finalScore -= 3;
+if (maxGap >= 20) continue;
 if (matchCount >= 4) continue;
-if (finalScore < 95) continue;
+if (finalScore < 92) continue;
 const key = nums.join("-");
 const patternKey = nums.map(n => n % 10).sort((a, b) => a - b).join("-");
 if (seenSets.has(key)) continue;
@@ -551,37 +552,50 @@ if (avgGap >= 5 && avgGap <= 9) {
   set.score += 3;
 }
 });
-eliteSets = allSets.slice(0, 100);
-for (let i = 0; i < 120; i++) {
+eliteSets = allSets.slice(0, 300);
+for (let i = 0; i < 300; i++) {
   const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
   const p2 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
 
   const child = [...new Set([...p1.nums.slice(0, 3), ...p2.nums.slice(3)])];
 
   while (child.length < 6) {
-    const n = Math.floor(Math.random() * 45) + 1;
-    if (!child.includes(n)) child.push(n);
+  const n = Math.floor(Math.random() * 45) + 1;
+
+  if (
+    !child.includes(n) &&
+    !excludeNums.includes(n)
+  ) {
+    child.push(n);
   }
+}
 
   child.sort((a, b) => a - b);
 
   allSets.push({
   nums: child,
-  score: getAIScore(child),
+  score: evaluateCombo(child),
 });
 }
-for (let i = 0; i < 80; i++) {
+for (let i = 0; i < 200; i++) {
   const idx = Math.floor(Math.random() * allSets.length);
 
   const child = [...allSets[idx].nums];
 
-  const pos = Math.floor(Math.random() * 6);
+  let pos;
+
+do {
+  pos = Math.floor(Math.random() * 6);
+} while (fixedNums.includes(child[pos]));
 
   let newNum;
 
   do {
     newNum = Math.floor(Math.random() * 45) + 1;
-  } while (child.includes(newNum));
+  } while (
+  child.includes(newNum) ||
+  excludeNums.includes(newNum)
+);
 
   child[pos] = newNum;
 
@@ -589,7 +603,7 @@ for (let i = 0; i < 80; i++) {
 
   allSets.push({
     nums: child,
-    score: getAIScore(child),
+    score: evaluateCombo(child),
   });
 }
 allSets.sort((a, b) => b.score - a.score);
@@ -609,7 +623,7 @@ for (const set of allSets) {
   }
 }
 
-  if (top20.length >= 20) break;
+  if (top20.length >= 30) break;
 }
 top10.forEach((set) => {
   const key = set.nums.slice().sort((a, b) => a - b).join("-");
@@ -677,7 +691,8 @@ const getAIScore = (nums) => {
 
   // 홀짝 균형
   const odd = sorted.filter(n => n % 2 === 1).length;
-  if (odd >= 2 && odd <= 4) score += 20;
+  if (odd === 3) score += 20;
+else if (odd === 2 || odd === 4) score += 10;
 
   // 번호 구간 분포
   const sections = [
@@ -693,16 +708,20 @@ const getAIScore = (nums) => {
   // 합계
   const sum = sorted.reduce((a, b) => a + b, 0);
 
-  if (sum >= 105 && sum <= 165) {
-    score += 3;
-  }
+ if (sum >= 120 && sum <= 150) {
+  score += 8;
+} else if (sum >= 105 && sum <= 165) {
+  score += 3;
+}
 
   // 고번호
   const high = sorted.filter(n => n >= 23).length;
 
   if (high === 3) {
-    score += 2;
-  }
+  score += 5;
+} else if (high === 2 || high === 4) {
+  score += 2;
+}
 
   // 소수
   const primes = [
@@ -714,9 +733,11 @@ const getAIScore = (nums) => {
     primes.includes(n)
   ).length;
 
-  if (primeCount >= 2 && primeCount <= 3) {
-    score += 2;
-  }
+  if (primeCount === 2 || primeCount === 3) {
+  score += 4;
+} else if (primeCount === 1 || primeCount === 4) {
+  score += 1;
+}
 
   // 번호 간격
   const gaps = [];
@@ -729,7 +750,7 @@ const getAIScore = (nums) => {
     gaps.reduce((a, b) => a + b, 0) / gaps.length;
 
   if (avgGap >= 5 && avgGap <= 9) {
-    score += 3;
+    score += 5;
   }
 
   return score;

@@ -9,7 +9,7 @@ export function generateTurbo({
 
   while (nums.length < 6) {
     const candidates = [];
-const mutationRate = 0.35;
+const mutationRate = 0.15;
     for (let i = 1; i <= 45; i++) {
       if (nums.includes(i) || excludeNums.includes(i)) continue;
 
