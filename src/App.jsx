@@ -275,7 +275,11 @@ if (consecutive >= 2) {
 // Mutation (5%)
 if (Math.random() < 0.05) {
 
-  const idx = Math.floor(Math.random() * nums.length);
+  let idx;
+
+do {
+  idx = Math.floor(Math.random() * nums.length);
+} while (fixedNums.includes(nums[idx]));
 
   let newNum;
 
@@ -484,6 +488,33 @@ const top20 = [];
 const MAX_RESULTS = 10;
 const lastPattern = new Set();
 const diversityCheck = (a, b) => {
+  const diversityCheck = (a, b) => {
+  const frontA = a.slice(0, 2);
+  const frontB = b.slice(0, 2);
+
+  const closeFrontCount = frontA.filter(x =>
+    frontB.some(y => Math.abs(x - y) <= 3)
+  ).length;
+
+  if (closeFrontCount >= 2) return true;
+
+  let same = 0;
+
+  for (const n of a) {
+    if (b.includes(n)) same++;
+  }
+
+  const lastA = new Set(a.map(n => n % 10));
+  const lastB = new Set(b.map(n => n % 10));
+
+  let lastSame = 0;
+
+  lastA.forEach(v => {
+    if (lastB.has(v)) lastSame++;
+  });
+
+  return same >= 4 || lastSame >= 4;
+};
   let same = 0;
 
   for (const n of a) {
@@ -502,6 +533,20 @@ const diversityCheck = (a, b) => {
   return same >= 4 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
+const uniqueFinalSets = [];
+const finalSeen = new Set();
+
+for (const set of allSets) {
+  const key = set.nums.slice().sort((a, b) => a - b).join("-");
+
+  if (finalSeen.has(key)) continue;
+
+  finalSeen.add(key);
+  uniqueFinalSets.push(set);
+}
+
+allSets.length = 0;
+allSets.push(...uniqueFinalSets);
 allSets.splice(500);
 const unique = [];
 
