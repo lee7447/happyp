@@ -533,6 +533,28 @@ const diversityCheck = (a, b) => {
   return same >= 4 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
+// 최종 조합 전체 균형 필터
+const balancedSets = allSets.filter((set) => {
+  const sections = [
+    set.nums.filter(n => n <= 10).length,
+    set.nums.filter(n => n >= 11 && n <= 20).length,
+    set.nums.filter(n => n >= 21 && n <= 30).length,
+    set.nums.filter(n => n >= 31 && n <= 40).length,
+    set.nums.filter(n => n >= 41).length,
+  ];
+
+  const low20 = sections[0] + sections[1];
+  const high31 = sections[3] + sections[4];
+
+  if (Math.max(...sections) >= 4) return false;
+  if (low20 >= 5) return false;
+  if (high31 === 0) return false;
+
+  return true;
+});
+
+allSets.length = 0;
+allSets.push(...balancedSets);
 const uniqueFinalSets = [];
 const finalSeen = new Set();
 
@@ -825,15 +847,8 @@ const saveNumbers = (nums, idx) => {
 
   //return updated;
 //});
-  supabase
+  
 
-  .then(({ error }) => {
-    if (error) {
-      console.error("Supabase 저장 실패:", error);
-    } else {
-      console.log("Supabase 저장 성공");
-    }
-  });
 };
 
 const deleteSaved = (deleteIdx) => {
