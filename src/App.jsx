@@ -823,7 +823,7 @@ else if (odd === 2 || odd === 4) score += 10;
   return score;
 };
 const saveNumbers = (nums, idx) => {
-   const exists = saved.some(
+  const exists = saved.some(
     (item) => item.nums.join(",") === nums.join(",")
   );
 
@@ -831,24 +831,18 @@ const saveNumbers = (nums, idx) => {
     alert("이미 저장된 조합입니다.");
     return;
   }
+
+  const aiScore = getAIScore(nums);
+
   setSaved((prev) => [
     ...prev,
     {
-      nums,
+      nums: [...nums],
       idx,
-       score: idx,
-       date: new Date().toLocaleString(),
+      score: aiScore,
+      date: new Date().toLocaleString(),
     },
   ]);
-  //setAiLearning((prev) => {
-  //const updated = { ...prev };
-
-  
-
-  //return updated;
-//});
-  
-
 };
 
 const deleteSaved = (deleteIdx) => {
@@ -909,6 +903,12 @@ useEffect(() => {
     winning
   );
 }, [winning]);
+useEffect(() => {
+  localStorage.setItem(
+    "lottoHistory",
+    JSON.stringify(history)
+  );
+}, [history]);
 useEffect(() => {
   localStorage.setItem(
     "hotRecentNums",
