@@ -33,10 +33,7 @@ const [pairLearning, setPairLearning] = useState(() => {
   return data ? JSON.parse(data) : {};
 });
 const [searchNum, setSearchNum] = useState("");
-const [history, setHistory] = useState(() => {
-  const stored = localStorage.getItem("lottoHistory");
-  return stored ? JSON.parse(stored) : [];
-});
+
 const [winning, setWinning] = useState(() => {
   return localStorage.getItem("winningNums") || "";
 });
@@ -57,30 +54,42 @@ const loadLatestWinning = async () => {
 };
 const evaluateCombo = (nums) => {
   const odd = nums.filter((n) => n % 2 === 1).length;
-  const high = nums.filter((n) => n > 22).length;
+  const high = nums.filter((n) => n >= 23).length;
   const sum = nums.reduce((a, b) => a + b, 0);
 
-  let score =
-    100 -
-    Math.abs(odd - 3) * 6 -
-    Math.abs(high - 3) * 5 -
-    Math.abs(sum - 135) * 0.10;
+  let score = 70;
 
-  const sectionCounts = getSectionCounts(nums);
-  const uniqueLastDigits = new Set(nums.map(n => n % 10)).size;
+  // 홀짝 균형
+  if (odd === 3) score += 10;
+  else if (odd === 2 || odd === 4) score += 6;
 
-  score += new Set(
-    nums.map(n => Math.floor((n - 1) / 10))
-  ).size * 2;
+  // 고번호 균형
+  if (high === 3) score += 8;
+  else if (high === 2 || high === 4) score += 4;
+
+  // 번호 합계
+  if (sum >= 120 && sum <= 150) score += 7;
+  else if (sum >= 105 && sum <= 165) score += 3;
+
+  // 번호 구간 분포
+  const sections = getSectionCounts(nums);
+  const activeSections = sections.filter((n) => n > 0).length;
+  score += activeSections * 1.5;
+
+  // 끝자리 다양성
+  const uniqueLastDigits =
+    new Set(nums.map((n) => n % 10)).size;
 
   score += uniqueLastDigits * 0.8;
 
-  score += getLearningBonus(nums, aiLearning);
-  score += getPairLearningBonus(nums, pairLearning);
+  // 학습 보너스는 최대 3점만 반영
+  score += Math.min(3, getLearningBonus(nums, aiLearning));
 
-  if (odd >= 2 && odd <= 4) score += 2;
+  // 페어 학습 보너스는 최대 3점만 반영
+  score += Math.min(3, getPairLearningBonus(nums, pairLearning));
 
-  return score;
+  // 100점 제한
+  return Math.min(100, Math.max(0, score));
 };
   const generate = () => {
     setResults([]);
@@ -161,7 +170,7 @@ if (elitePool.length > 300 && Math.random() < 0.90) {
       while (nums.length < 6) {
         let n;
 
-if (Math.random() < 0.55) {
+if (Math.random() < 0.85) {
   const weights = [];
 
 let totalWeight = 0;
@@ -194,14 +203,18 @@ const sameLastDigit = nums.filter(
 
 const hotRecentBonus = hotRecentNums.includes(i) ? 3 : 0;
 
+const learningPenalty =
+  Math.max(0, (aiLearning[i] || 0) - 5) * 0.15;
+
 const weight =
   1 +
-  (aiLearning[i] || 0) * 0.42 +
+  (aiLearning[i] || 0) * 0.20 +
   (recentFrequency[i] || 0) * 0.01 +
   hotRecentBonus +
   pairBonus * 0.35 +
   Math.random() * 2.2 -
-  sameLastDigit * 8;
+  sameLastDigit * 3 -
+  learningPenalty;
 
 let finalWeight = weight;
 const spread = 45 - i;
@@ -273,7 +286,7 @@ if (consecutive >= 2) {
         }
       }
 // Mutation (5%)
-if (Math.random() < 0.05) {
+if (Math.random() < 0.03) {
 
   let idx;
 
@@ -432,7 +445,7 @@ if (consecutivePenalty >= 15) continue;
 if (odd < 2 || odd > 4) continue;
 
 if (high < 2 || high > 4) continue;
-if (sum < 90 || sum > 190) continue;
+if (sum < 100 || sum > 180) continue;
 
 if (maxSection >= 4) continue;
 
@@ -533,186 +546,34 @@ const diversityCheck = (a, b) => {
   return same >= 4 || lastSame >= 4;
 };
 allSets.sort((a, b) => b.score - a.score);
-// 최종 조합 전체 균형 필터
-const balancedSets = allSets.filter((set) => {
-  const sections = [
-    set.nums.filter(n => n <= 10).length,
-    set.nums.filter(n => n >= 11 && n <= 20).length,
-    set.nums.filter(n => n >= 21 && n <= 30).length,
-    set.nums.filter(n => n >= 31 && n <= 40).length,
-    set.nums.filter(n => n >= 41).length,
-  ];
-
-  const low20 = sections[0] + sections[1];
-  const high31 = sections[3] + sections[4];
-
-  if (Math.max(...sections) >= 4) return false;
-  if (low20 >= 5) return false;
-  if (high31 === 0) return false;
-
-  return true;
-});
-
-allSets.length = 0;
-allSets.push(...balancedSets);
-const uniqueFinalSets = [];
-const finalSeen = new Set();
-
-for (const set of allSets) {
-  const key = set.nums.slice().sort((a, b) => a - b).join("-");
-
-  if (finalSeen.has(key)) continue;
-
-  finalSeen.add(key);
-  uniqueFinalSets.push(set);
-}
-
-allSets.length = 0;
-allSets.push(...uniqueFinalSets);
-allSets.splice(500);
-const unique = [];
-
-for (const set of allSets) {
-  if (
-    !unique.some(
-      (u) =>
-        u.nums.filter((n) => set.nums.includes(n)).length >= 4
-    )
-  ) {
-    unique.push(set);
-  }
-
-  if (unique.length >= 300) break;
-}
-
-allSets.length = 0;
-allSets.push(...unique);
-allSets.forEach((set) => {
-  let bonus = 0;
-
-  if (set.sum >= 105 && set.sum <= 165) bonus += 3;
-
-  if (set.odd === 3 || set.odd === 4) bonus += 2;
-
-  if (set.high === 3) bonus += 2;
-
-  const primeCount = set.nums.filter((n) =>
-  [2,3,5,7,11,13,17,19,23,29,31,37,41,43].includes(n)
-).length;
-
-if (primeCount >= 2 && primeCount <= 3) {
-  bonus += 2;
-}
-
-  set.score += bonus;
-  const nums = set.nums;
-
-const gaps = [];
-for (let i = 1; i < nums.length; i++) {
-  gaps.push(nums[i] - nums[i - 1]);
-}
-
-const avgGap =
-  gaps.reduce((a, b) => a + b, 0) / gaps.length;
-
-if (avgGap >= 5 && avgGap <= 9) {
-  set.score += 3;
-}
-});
-eliteSets = allSets.slice(0, 300);
-for (let i = 0; i < 300; i++) {
-  const p1 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
-  const p2 = eliteSets[Math.floor(Math.random() * eliteSets.length)];
-
-  const child = [...new Set([...p1.nums.slice(0, 3), ...p2.nums.slice(3)])];
-
-  while (child.length < 6) {
-  const n = Math.floor(Math.random() * 45) + 1;
-
-  if (
-    !child.includes(n) &&
-    !excludeNums.includes(n)
-  ) {
-    child.push(n);
-  }
-}
-
-  child.sort((a, b) => a - b);
-
-  allSets.push({
-  nums: child,
-  score: evaluateCombo(child),
-});
-}
-for (let i = 0; i < 200; i++) {
-  const idx = Math.floor(Math.random() * allSets.length);
-
-  const child = [...allSets[idx].nums];
-
-  let pos;
-
-do {
-  pos = Math.floor(Math.random() * 6);
-} while (fixedNums.includes(child[pos]));
-
-  let newNum;
-
-  do {
-    newNum = Math.floor(Math.random() * 45) + 1;
-  } while (
-  child.includes(newNum) ||
-  excludeNums.includes(newNum)
-);
-
-  child[pos] = newNum;
-
-  child.sort((a, b) => a - b);
-
-  allSets.push({
-    nums: child,
-    score: evaluateCombo(child),
-  });
-}
-allSets.sort((a, b) => b.score - a.score);
-for (const set of allSets) {
-  const similar = top10.some((item) =>
-  diversityCheck(item.nums, set.nums)
-);
-
-  if (!similar) {
-  const overlap = top10.some((item) => {
-    return item.nums.filter((n) => set.nums.includes(n)).length >= 3;
-  });
-
-  if (!overlap) {
-    top10.push(set);
-    top20.push(set);
-  }
-}
-
-  if (top20.length >= 30) break;
-}
-top10.forEach((set) => {
-  const key = set.nums.slice().sort((a, b) => a - b).join("-");
-  aiCombo[key] = (aiCombo[key] || 0) + 1;
-});
-top20.sort((a, b) => b.score - a.score);
 
 const finalTop10 = [];
 const usedKeys = new Set();
 
-for (const set of top20.sort((a, b) => b.score - a.score)) {
-  const key = set.nums.slice().sort((a, b) => a - b).join(",");
+for (const set of allSets) {
+  const key = set.nums
+    .slice()
+    .sort((a, b) => a - b)
+    .join("-");
 
   if (usedKeys.has(key)) continue;
 
-  finalTop10.push(set);
   usedKeys.add(key);
+  finalTop10.push(set);
 
-  if (finalTop10.length >= MAX_RESULTS) break;
+  if (finalTop10.length >= 10) break;
 }
+finalTop10.sort((a, b) => b.score - a.score);
+
+
+
+
 
 setResults(finalTop10);
+if (finalTop10.length === 0) {
+  alert("생성된 조합이 없습니다.");
+  return;
+}
 elitePool.length = 0;
 eliteSets.length = 0;
 seenSets.clear();
@@ -721,10 +582,7 @@ top10.forEach((set) => {
   const key = set.nums.slice().sort((a, b) => a - b).join("-");
   aiCombo[key] = (aiCombo[key] || 0) + 1;
 });
-if (top10.length === 0) {
-  alert("생성된 조합이 없습니다.");
-  return;
-}
+
     const bestSet = finalTop10[0];
 const highestScore = Math.max(
   ...history.map((h) => h.score),
@@ -1104,7 +962,7 @@ const topNumbers = Object.entries(frequency)
         >
           <h3>
   {idx === 0 ? "🏆 BEST 조합" : `${idx + 1}조합`}
-  (점수 {set.score})
+  점수 {set.score.toFixed(1)}
 </h3>
 <p>
   🎯 최근 당첨번호 일치 : {set.matchCount}개
@@ -1262,39 +1120,7 @@ const topNumbers = Object.entries(frequency)
     ))}
 </div>
 <h2>💾 저장된 조합({saved.length}개)</h2>
-<h2>🕒 생성 이력</h2>
 
-{history.length === 0 && (
-  <p>생성 이력이 없습니다.</p>
-)}
-
-{history.map((item, idx) => (
-  <div
-    key={idx}
-    style={{
-      border: "1px solid #ccc",
-      padding: 10,
-      marginBottom: 5,
-      borderRadius: 5,
-    }}
-  >
-    <div>{item.date}</div>
-    <div>
-      BEST : {item.nums.join(", ")}
-    </div>
-    <div>
-      점수 : {item.score}
-      <div>
-  등급 :
-  {item.score >= 100
-    ? " 🏆 S"
-    : item.score >= 90
-    ? " 🥈 A"
-    : " 🥉 B"}
-</div>
-    </div>
-  </div>
-))}
 <input
   type="number"
   placeholder="번호 검색 (예: 7)"
