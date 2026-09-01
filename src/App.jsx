@@ -347,22 +347,35 @@ const varianceBonus =
   new Set(nums.map(n => Math.floor((n - 1) / 10))).size * 2;
 
 finalScore += varianceBonus;
-const learningBonus = getLearningBonus(nums, aiLearning);
+const learningBonus = Math.min(
+  8,
+  getLearningBonus(nums, aiLearning)
+);
+
 const diversityBonus =
   new Set(nums.map(n => n % 10)).size * 0.8;
 
 finalScore += diversityBonus;
-if (learningBonus > 12) {
-  finalScore += 2;
-}
-finalScore += learningBonus;
-const comboKey = nums.slice().sort((a, b) => a - b).join("-");
 
-finalScore += (aiCombo[comboKey] || 0) * 0.5;
+finalScore += learningBonus;
+
+const comboKey =
+  nums.slice().sort((a, b) => a - b).join("-");
+
+finalScore += Math.min(
+  2,
+  (aiCombo[comboKey] || 0) * 0.5
+);
+
 if (matchCount >= 2) {
   finalScore += 3;
 }
-const pairBonus = getPairLearningBonus(nums, pairLearning);
+
+const pairBonus = Math.min(
+  8,
+  getPairLearningBonus(nums, pairLearning)
+);
+
 finalScore += pairBonus;
 const evenOddBalance =
   Math.abs(odd - 3) <= 1 ? 2 : 0;
