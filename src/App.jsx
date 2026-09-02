@@ -576,6 +576,27 @@ for (const set of allSets) {
 
   if (finalTop10.length >= 10) break;
 }
+const maxFinalScore = Math.max(
+  ...finalTop10.map(set => set.score)
+);
+
+const minFinalScore = Math.min(
+  ...finalTop10.map(set => set.score)
+);
+
+if (maxFinalScore > minFinalScore) {
+  finalTop10.forEach((set) => {
+    set.score =
+      92 +
+      ((set.score - minFinalScore) /
+        (maxFinalScore - minFinalScore)) * 8;
+  });
+} else {
+  finalTop10.forEach((set) => {
+    set.score = 100;
+  });
+}
+
 finalTop10.sort((a, b) => b.score - a.score);
 
 
