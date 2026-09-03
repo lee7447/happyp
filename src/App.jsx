@@ -206,15 +206,19 @@ const hotRecentBonus = hotRecentNums.includes(i) ? 3 : 0;
 const learningPenalty =
   Math.max(0, (aiLearning[i] || 0) - 5) * 0.15;
 
+const frontRepeatPenalty =
+  (i === 7 || i === 17) ? 2.5 : 0;
+
 const weight =
   1 +
-  (aiLearning[i] || 0) * 0.20 +
+  (aiLearning[i] || 0) * 0.12 +
   (recentFrequency[i] || 0) * 0.01 +
   hotRecentBonus +
-  pairBonus * 0.35 +
+  pairBonus * 0.25 +
   Math.random() * 2.2 -
   sameLastDigit * 3 -
-  learningPenalty;
+  learningPenalty -
+  frontRepeatPenalty;
 
 let finalWeight = weight;
 const spread = 45 - i;
@@ -571,10 +575,20 @@ for (const set of allSets) {
 
   if (usedKeys.has(key)) continue;
 
-  usedKeys.add(key);
-  finalTop10.push(set);
+const tooSimilar = finalTop10.some((item) => {
+  const overlap = item.nums.filter((n) =>
+    set.nums.includes(n)
+  ).length;
 
-  if (finalTop10.length >= 10) break;
+  return overlap >= 3;
+});
+
+if (tooSimilar) continue;
+
+usedKeys.add(key);
+finalTop10.push(set);
+
+if (finalTop10.length >= 10) break;
 }
 const maxFinalScore = Math.max(
   ...finalTop10.map(set => set.score)
@@ -592,9 +606,7 @@ if (maxFinalScore > minFinalScore) {
         (maxFinalScore - minFinalScore)) * 8;
   });
 } else {
-  finalTop10.forEach((set) => {
-    set.score = 100;
-  });
+  
 }
 
 finalTop10.sort((a, b) => b.score - a.score);
